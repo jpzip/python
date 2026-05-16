@@ -35,7 +35,7 @@ BASE_ENTRY: dict[str, Any] = {
     "city_roma": "Yokohama Shi Naka Ku",
     "city_code": "14104",
     "towns": [
-        {"town": "矢口台", "kana": "ヤグチダイ", "roma": "Yaguchidai"},
+        {"town": "本町", "kana": "ホンチョウ", "roma": "Honcho"},
     ],
 }
 
@@ -85,8 +85,8 @@ def _make_async(handler) -> tuple[AsyncJpzipClient, Recorder]:
 
 
 def test_is_valid_zipcode() -> None:
-    assert is_valid_zipcode("2310831") is True
-    assert is_valid_zipcode("231-0831") is False
+    assert is_valid_zipcode("2310017") is True
+    assert is_valid_zipcode("231-0017") is False
     assert is_valid_zipcode("abcdefg") is False
     assert is_valid_zipcode("12345") is False
     assert is_valid_zipcode("") is False
@@ -105,25 +105,25 @@ def test_lookup_malformed_no_fetch() -> None:
 def test_lookup_hit() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/p/231.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         return _json_response({}, status=404)
 
     client, _ = _make_sync(handler)
     with client:
-        entry = client.lookup("2310831")
+        entry = client.lookup("2310017")
     assert entry is not None
     assert entry.prefecture == "神奈川県"
-    assert entry.towns[0].town == "矢口台"
+    assert entry.towns[0].town == "本町"
 
 
 def test_lookup_l1_caching() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return _json_response({"2310831": BASE_ENTRY})
+        return _json_response({"2310017": BASE_ENTRY})
 
     client, rec = _make_sync(handler)
     with client:
         for _ in range(5):
-            client.lookup("2310831")
+            client.lookup("2310017")
     assert rec.hits["/p/231.json"] == 1
 
 
@@ -137,7 +137,7 @@ def test_lookup_404_returns_none() -> None:
 
 
 def test_lookup_group_three_digit() -> None:
-    payload = {"2310831": BASE_ENTRY}
+    payload = {"2310017": BASE_ENTRY}
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/p/231.json":
@@ -147,31 +147,31 @@ def test_lookup_group_three_digit() -> None:
     client, _ = _make_sync(handler)
     with client:
         out = client.lookup_group("231")
-    assert set(out) == {"2310831"}
+    assert set(out) == {"2310017"}
 
 
 def test_lookup_group_one_digit() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/g/2.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         return httpx.Response(404)
 
     client, _ = _make_sync(handler)
     with client:
         out = client.lookup_group("2")
-    assert "2310831" in out
+    assert "2310017" in out
 
 
 def test_lookup_group_two_digit_fanout() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/p/231.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         return httpx.Response(404)
 
     client, rec = _make_sync(handler)
     with client:
         out = client.lookup_group("23")
-    assert set(out) == {"2310831"}
+    assert set(out) == {"2310017"}
     # Should have fanned out to all 10 of /p/23{0..9}.json
     fan_paths = {f"/p/23{i}.json" for i in range(10)}
     assert fan_paths.issubset(rec.hits.keys())
@@ -180,7 +180,7 @@ def test_lookup_group_two_digit_fanout() -> None:
 def test_lookup_all_fans_g0_to_g9() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/g/2.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         # Other groups are empty but valid 200s
         if request.url.path.startswith("/g/"):
             return _json_response({})
@@ -189,7 +189,7 @@ def test_lookup_all_fans_g0_to_g9() -> None:
     client, rec = _make_sync(handler)
     with client:
         out = client.lookup_all()
-    assert "2310831" in out
+    assert "2310017" in out
     assert {f"/g/{i}.json" for i in range(10)} == {
         p for p in rec.hits if p.startswith("/g/")
     }
@@ -198,7 +198,7 @@ def test_lookup_all_fans_g0_to_g9() -> None:
 def test_preload_all_then_lookup_no_fetch() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/g/2.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         if request.url.path.startswith("/g/"):
             return _json_response({})
         return httpx.Response(404)
@@ -207,7 +207,7 @@ def test_preload_all_then_lookup_no_fetch() -> None:
     with client:
         client.preload("all")
         rec.hits.clear()
-        entry = client.lookup("2310831")
+        entry = client.lookup("2310017")
         assert entry is not None and entry.city == "横浜市中区"
     # After preload, lookup must be cache-only.
     assert sum(rec.hits.values()) == 0
@@ -218,14 +218,14 @@ def test_refresh_clears_l1() -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         call_count["n"] += 1
-        return _json_response({"2310831": BASE_ENTRY})
+        return _json_response({"2310017": BASE_ENTRY})
 
     client, _ = _make_sync(handler)
     with client:
-        client.lookup("2310831")
-        client.lookup("2310831")  # cached
+        client.lookup("2310017")
+        client.lookup("2310017")  # cached
         client.refresh()
-        client.lookup("2310831")  # forced refetch
+        client.lookup("2310017")  # forced refetch
     assert call_count["n"] == 2
 
 
@@ -252,7 +252,7 @@ def test_meta_version_change_invalidates_l1() -> None:
                 }
             )
         if request.url.path == "/p/231.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         return httpx.Response(404)
 
     client, rec = _make_sync(handler)
@@ -260,7 +260,7 @@ def test_meta_version_change_invalidates_l1() -> None:
         # 1) seed meta + L1
         meta = client.get_meta()
         assert meta is not None and meta.version == "2026-04"
-        client.lookup("2310831")
+        client.lookup("2310017")
         before = rec.hits["/p/231.json"]
         assert before == 1
 
@@ -271,7 +271,7 @@ def test_meta_version_change_invalidates_l1() -> None:
         assert meta2 is not None and meta2.version == "2026-05"
 
         # 3) Lookup should re-fetch the prefix (L1 was cleared).
-        client.lookup("2310831")
+        client.lookup("2310017")
         assert rec.hits["/p/231.json"] == 2
 
 
@@ -314,7 +314,7 @@ def test_retry_on_5xx_then_success() -> None:
         attempts["n"] += 1
         if attempts["n"] < 2:
             return httpx.Response(503)
-        return _json_response({"2310831": BASE_ENTRY})
+        return _json_response({"2310017": BASE_ENTRY})
 
     transport = httpx.MockTransport(handler)
     http = httpx.Client(transport=transport)
@@ -322,7 +322,7 @@ def test_retry_on_5xx_then_success() -> None:
     with client:
         # Use a smaller backoff window by patching MAX_ATTEMPTS-safe path: the
         # first retry waits backoff_seconds(1) = 400ms which is fine for tests.
-        entry = client.lookup("2310831")
+        entry = client.lookup("2310017")
     assert entry is not None
     assert attempts["n"] == 2
 
@@ -351,7 +351,7 @@ def test_l2_cache_round_trip() -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         hits["n"] += 1
-        return _json_response({"2310831": BASE_ENTRY})
+        return _json_response({"2310017": BASE_ENTRY})
 
     transport = httpx.MockTransport(handler)
     http = httpx.Client(transport=transport)
@@ -360,7 +360,7 @@ def test_l2_cache_round_trip() -> None:
     # First client populates the cache.
     c1 = JpzipClient(base_url="https://test.invalid", http_client=http, cache=cache)
     with c1:
-        c1.lookup("2310831")
+        c1.lookup("2310017")
     assert hits["n"] == 1
     assert "https://test.invalid/p/231.json" in cache.data
 
@@ -368,7 +368,7 @@ def test_l2_cache_round_trip() -> None:
     http2 = httpx.Client(transport=transport)
     c2 = JpzipClient(base_url="https://test.invalid", http_client=http2, cache=cache)
     with c2:
-        entry = c2.lookup("2310831")
+        entry = c2.lookup("2310017")
     assert entry is not None and entry.prefecture == "神奈川県"
     assert hits["n"] == 1  # no new network hit
 
@@ -379,12 +379,12 @@ def test_l2_cache_round_trip() -> None:
 @pytest.mark.asyncio
 async def test_async_lookup_and_caching() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return _json_response({"2310831": BASE_ENTRY})
+        return _json_response({"2310017": BASE_ENTRY})
 
     client, rec = _make_async(handler)
     async with client:
-        e1 = await client.lookup("2310831")
-        e2 = await client.lookup("2310831")
+        e1 = await client.lookup("2310017")
+        e2 = await client.lookup("2310017")
     assert e1 is not None and e2 is not None
     assert e1.prefecture == "神奈川県"
     assert rec.hits["/p/231.json"] == 1
@@ -394,7 +394,7 @@ async def test_async_lookup_and_caching() -> None:
 async def test_async_lookup_all() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/g/2.json":
-            return _json_response({"2310831": BASE_ENTRY})
+            return _json_response({"2310017": BASE_ENTRY})
         if request.url.path.startswith("/g/"):
             return _json_response({})
         return httpx.Response(404)
@@ -402,4 +402,4 @@ async def test_async_lookup_all() -> None:
     client, _ = _make_async(handler)
     async with client:
         out = await client.lookup_all()
-    assert "2310831" in out
+    assert "2310017" in out

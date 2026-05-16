@@ -19,7 +19,7 @@ Python 3.10 以上が必要です。
 ```python
 import jpzip
 
-entry = jpzip.lookup("2310831")
+entry = jpzip.lookup("2310017")
 # entry is None なら見つからなかった
 
 dict_ = jpzip.lookup_group("23")   # 2 桁は 10 並列 fetch
@@ -38,7 +38,7 @@ with JpzipClient(
     cache=my_cache,           # Cache プロトコルを満たす任意の実装
 ) as client:
     client.preload("all")
-    entry = client.lookup("2310831")
+    entry = client.lookup("2310017")
 ```
 
 ### 非同期クライアント API
@@ -49,7 +49,7 @@ from jpzip import AsyncJpzipClient
 
 async def main():
     async with AsyncJpzipClient() as client:
-        entry = await client.lookup("2310831")
+        entry = await client.lookup("2310017")
         print(entry)
 
 asyncio.run(main())

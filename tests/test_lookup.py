@@ -307,6 +307,24 @@ def test_spec_mismatch_callback_fires_once() -> None:
     assert calls == [("1.0", "9.9")]
 
 
+def test_no_retry_on_4xx() -> None:
+    """Regression: a non-404 4xx must propagate immediately, not retry."""
+
+    attempts = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts["n"] += 1
+        return httpx.Response(403)
+
+    transport = httpx.MockTransport(handler)
+    http = httpx.Client(transport=transport)
+    client = JpzipClient(base_url="https://test.invalid", http_client=http)
+    with client:
+        with pytest.raises(RuntimeError, match="403"):
+            client.lookup("2310017")
+    assert attempts["n"] == 1
+
+
 def test_retry_on_5xx_then_success() -> None:
     attempts = {"n": 0}
 

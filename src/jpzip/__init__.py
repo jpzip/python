@@ -47,7 +47,7 @@ __all__ = [
     "preload",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 _default_lock = threading.Lock()
 _default_client: JpzipClient | None = None

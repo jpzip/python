@@ -2,6 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/jpzip.svg)](https://pypi.org/project/jpzip/)
 [![Python versions](https://img.shields.io/pypi/pyversions/jpzip.svg)](https://pypi.org/project/jpzip/)
+[![Docs](https://img.shields.io/badge/docs-jpzip.nadai.dev-0066cc.svg)](https://jpzip.nadai.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Publish](https://github.com/jpzip/python/actions/workflows/publish.yml/badge.svg)](https://github.com/jpzip/python/actions/workflows/publish.yml)
 
